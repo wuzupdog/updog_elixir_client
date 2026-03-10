@@ -10,7 +10,7 @@ defmodule UpdogElixirClient do
         sample_rate: 1.0
   """
 
-  alias UpdogElixirClient.{NoticeSender, Context, Breadcrumbs, Collector}
+  alias UpdogElixirClient.{NoticeSender, DeploymentSender, Context, Breadcrumbs, Collector}
 
   @doc """
   Report an error to Updog. Errors are sent immediately, never batched.
@@ -29,6 +29,17 @@ defmodule UpdogElixirClient do
   def notify_error(kind, reason, stacktrace, opts \\ []) do
     if enabled?() do
       NoticeSender.send_error(kind, reason, stacktrace, opts)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Report a deployment marker to Updog.
+  """
+  def notify_deployment(attrs \\ %{}) when is_map(attrs) do
+    if enabled?() do
+      DeploymentSender.send_deployment(attrs)
     end
 
     :ok

@@ -70,3 +70,16 @@ config :logger,
 | Oban jobs | `span` | Worker module and duration |
 | Logs | `log` | All logger output at configured level |
 | Errors | `error` | Exceptions with stacktraces |
+
+## Deployment tracking
+
+You can publish deployment markers to help correlate regressions with releases:
+
+```elixir
+UpdogElixirClient.notify_deployment(%{
+  environment: "production",
+  service: "api",
+  version: "v1.2.3",
+  sha: "abc123"
+})
+```

@@ -13,4 +13,5 @@ defmodule UpdogElixirClient.Config do
   def events_url, do: "#{endpoint()}/api/v1/events"
   def metrics_url, do: "#{endpoint()}/api/v1/metrics"
   def logs_url, do: "#{endpoint()}/api/v1/logs"
+  def deployments_url, do: "#{endpoint()}/api/v1/deployments"
 end

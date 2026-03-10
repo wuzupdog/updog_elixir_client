@@ -52,6 +52,26 @@ defmodule UpdogElixirClientTest do
     end
   end
 
+  describe "notify_deployment/1" do
+    test "sends deployment marker when api_key is set" do
+      Application.put_env(:updog_elixir_client, :api_key, "test-key")
+
+      expect(UpdogElixirClient.MockHttpClient, :post_json, fn url, payload ->
+        assert url =~ "/api/v1/deployments"
+        assert payload.environment
+        assert payload.version
+        :ok
+      end)
+
+      assert :ok = UpdogElixirClient.notify_deployment(%{version: "v1.2.3", service: "api"})
+    end
+
+    test "skips deployment marker when no api_key" do
+      Application.delete_env(:updog_elixir_client, :api_key)
+      assert :ok = UpdogElixirClient.notify_deployment(%{version: "v1.2.3"})
+    end
+  end
+
   describe "report_event/1" do
     test "pushes event when api_key is set" do
       Application.put_env(:updog_elixir_client, :api_key, "test-key")
