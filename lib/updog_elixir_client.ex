@@ -10,10 +10,10 @@ defmodule UpdogElixirClient do
         sample_rate: 1.0
   """
 
-  alias UpdogElixirClient.{NoticeSender, DeploymentSender, Context, Breadcrumbs, Collector}
+  alias UpdogElixirClient.{Breadcrumbs, Collector, Context, DeploymentSender, NoticeSender}
 
   @doc """
-  Report an error to Updog. Errors are sent immediately, never batched.
+  Queue an error for non-blocking, batched delivery to Updog.
   """
   def notify(exception, opts \\ []) when is_exception(exception) do
     if enabled?() do
@@ -69,6 +69,18 @@ defmodule UpdogElixirClient do
 
     :ok
   end
+
+  @doc "Queue a metric for batched delivery."
+  def report_metric(metric) when is_map(metric) do
+    if enabled?(), do: Collector.push_metric(metric)
+    :ok
+  end
+
+  @doc "Flush queued telemetry within `timeout` milliseconds."
+  def flush(timeout \\ 5_000), do: Collector.flush(timeout)
+
+  @doc "Return delivery counters and current bounded-queue usage."
+  def delivery_stats, do: Collector.stats()
 
   @doc """
   Returns whether the client is enabled. Enabled when an API key is configured.

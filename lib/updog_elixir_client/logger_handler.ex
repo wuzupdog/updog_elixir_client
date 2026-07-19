@@ -13,6 +13,9 @@ defmodule UpdogElixirClient.LoggerHandler do
   alias UpdogElixirClient.Collector
 
   @impl true
+  def log(%{meta: %{updog_internal: true}}, _config), do: :ok
+
+  @impl true
   def log(%{level: level, msg: msg, meta: meta}, _config) do
     message = format_message(msg)
 
@@ -21,7 +24,9 @@ defmodule UpdogElixirClient.LoggerHandler do
       level: to_string(level),
       message: message,
       timestamp: DateTime.utc_now() |> DateTime.to_iso8601(),
-      metadata: extract_metadata(meta)
+      metadata: extract_metadata(meta),
+      trace_id: metadata_value(meta, :trace_id),
+      span_id: metadata_value(meta, :span_id)
     })
 
     # Also send crash reports as error notices
@@ -45,7 +50,10 @@ defmodule UpdogElixirClient.LoggerHandler do
 
   defp format_message({:string, message}), do: to_string(message)
   defp format_message({:report, report}), do: inspect(report)
-  defp format_message({format, args}) when is_list(args), do: :io_lib.format(format, args) |> to_string()
+
+  defp format_message({format, args}) when is_list(args),
+    do: :io_lib.format(format, args) |> to_string()
+
   defp format_message(other), do: inspect(other)
 
   defp extract_metadata(meta) do
@@ -53,6 +61,8 @@ defmodule UpdogElixirClient.LoggerHandler do
     |> Map.take([:module, :function, :file, :line, :domain, :pid])
     |> Map.new(fn {k, v} -> {k, inspect(v)} end)
   end
+
+  defp metadata_value(meta, key), do: meta |> Map.get(key, "") |> to_string()
 
   @impl true
   def adding_handler(config), do: {:ok, config}

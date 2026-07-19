@@ -44,46 +44,56 @@ defmodule UpdogElixirClient.TelemetryHandler do
 
   def handle_phoenix_event([:phoenix, :endpoint, :stop], measurements, metadata, _config) do
     try do
-      if should_sample?() do
+      trace_id = trace_id(metadata)
+
+      if should_sample?(trace_id) do
         duration_ms = System.convert_time_unit(measurements.duration, :native, :millisecond)
 
         Collector.push_event(%{
           type: "trace",
-          trace_id: generate_trace_id(),
+          trace_id: trace_id,
+          span_id: span_id(metadata),
           transaction_name: "#{metadata.conn.method} #{metadata.conn.request_path}",
           trace_type: "http",
           duration_ms: duration_ms,
           status_code: metadata.conn.status,
           method: metadata.conn.method,
           path: metadata.conn.request_path,
-          started_at: DateTime.utc_now() |> DateTime.to_iso8601()
+          started_at: started_at(duration_ms)
         })
       end
     rescue
       e ->
-        Logger.warning("Updog endpoint telemetry handler error: #{inspect(e)}")
+        Logger.warning("Updog endpoint telemetry handler error: #{inspect(e)}",
+          updog_internal: true
+        )
     end
   end
 
   def handle_phoenix_event([:phoenix, :live_view | _], measurements, metadata, _config) do
     try do
-      if should_sample?() do
+      trace_id = trace_id(metadata)
+
+      if should_sample?(trace_id) do
         duration_ms = System.convert_time_unit(measurements.duration, :native, :millisecond)
         view = metadata[:socket] && metadata[:socket].view
 
         Collector.push_event(%{
           type: "span",
-          trace_id: generate_trace_id(),
-          span_id: generate_span_id(),
+          trace_id: trace_id,
+          parent_span_id: parent_span_id(metadata),
+          span_id: span_id(metadata),
           operation: "live_view",
           description: inspect(view || "unknown"),
           duration_ms: duration_ms,
-          started_at: DateTime.utc_now() |> DateTime.to_iso8601()
+          started_at: started_at(duration_ms)
         })
       end
     rescue
       e ->
-        Logger.warning("Updog live_view telemetry handler error: #{inspect(e)}")
+        Logger.warning("Updog live_view telemetry handler error: #{inspect(e)}",
+          updog_internal: true
+        )
     end
   end
 
@@ -91,49 +101,71 @@ defmodule UpdogElixirClient.TelemetryHandler do
 
   def handle_ecto_event(_event, measurements, metadata, _config) do
     try do
-      if should_sample?() do
-        duration_ms = System.convert_time_unit(measurements.total_time || 0, :native, :millisecond)
+      trace_id = trace_id(metadata)
+
+      if should_sample?(trace_id) do
+        duration_ms =
+          System.convert_time_unit(measurements.total_time || 0, :native, :millisecond)
 
         Collector.push_event(%{
           type: "span",
-          trace_id: generate_trace_id(),
-          span_id: generate_span_id(),
+          trace_id: trace_id,
+          parent_span_id: parent_span_id(metadata),
+          span_id: span_id(metadata),
           operation: "ecto.query",
           description: metadata[:source] || "unknown",
           duration_ms: duration_ms,
-          started_at: DateTime.utc_now() |> DateTime.to_iso8601()
+          started_at: started_at(duration_ms)
         })
       end
     rescue
       e ->
-        Logger.warning("Updog ecto telemetry handler error: #{inspect(e)}")
+        Logger.warning("Updog ecto telemetry handler error: #{inspect(e)}", updog_internal: true)
     end
   end
 
   def handle_oban_event(_event, measurements, metadata, _config) do
     try do
-      if should_sample?() do
+      trace_id = trace_id(metadata)
+
+      if should_sample?(trace_id) do
         duration_ms = System.convert_time_unit(measurements.duration, :native, :millisecond)
 
         Collector.push_event(%{
           type: "span",
-          trace_id: generate_trace_id(),
-          span_id: generate_span_id(),
+          trace_id: trace_id,
+          parent_span_id: parent_span_id(metadata),
+          span_id: span_id(metadata),
           operation: "oban.job",
           description: inspect(metadata[:worker]),
           duration_ms: duration_ms,
-          started_at: DateTime.utc_now() |> DateTime.to_iso8601()
+          started_at: started_at(duration_ms)
         })
       end
     rescue
       e ->
-        Logger.warning("Updog oban telemetry handler error: #{inspect(e)}")
+        Logger.warning("Updog oban telemetry handler error: #{inspect(e)}", updog_internal: true)
     end
   end
 
-  defp should_sample? do
-    :rand.uniform() <= Config.sample_rate()
+  defp should_sample?(trace_id) do
+    case Config.sample_rate() do
+      rate when rate <= 0 ->
+        false
+
+      rate when rate >= 1 ->
+        true
+
+      rate ->
+        threshold = trunc(rate * 4_294_967_295)
+        <<value::unsigned-32, _::binary>> = :crypto.hash(:sha256, to_string(trace_id))
+        value <= threshold
+    end
   end
+
+  defp trace_id(metadata), do: to_string(metadata[:trace_id] || generate_trace_id())
+  defp span_id(metadata), do: to_string(metadata[:span_id] || generate_span_id())
+  defp parent_span_id(metadata), do: to_string(metadata[:parent_span_id] || "")
 
   defp generate_trace_id do
     :crypto.strong_rand_bytes(16) |> Base.hex_encode32(case: :lower, padding: false)
@@ -141,5 +173,11 @@ defmodule UpdogElixirClient.TelemetryHandler do
 
   defp generate_span_id do
     :crypto.strong_rand_bytes(8) |> Base.hex_encode32(case: :lower, padding: false)
+  end
+
+  defp started_at(duration_ms) do
+    DateTime.utc_now()
+    |> DateTime.add(-duration_ms, :millisecond)
+    |> DateTime.to_iso8601()
   end
 end

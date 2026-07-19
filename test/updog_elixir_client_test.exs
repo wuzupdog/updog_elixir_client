@@ -6,6 +6,8 @@ defmodule UpdogElixirClientTest do
   setup :verify_on_exit!
 
   setup do
+    Mox.set_mox_global()
+    UpdogElixirClient.CollectorState.reset()
     original_key = Application.get_env(:updog_elixir_client, :api_key)
 
     on_exit(fn ->
@@ -41,6 +43,7 @@ defmodule UpdogElixirClientTest do
 
       exception = %RuntimeError{message: "test error"}
       assert :ok = UpdogElixirClient.notify(exception)
+      assert :ok = UpdogElixirClient.flush(1_000)
     end
 
     test "skips when no api_key" do
@@ -64,6 +67,7 @@ defmodule UpdogElixirClientTest do
       end)
 
       assert :ok = UpdogElixirClient.notify_deployment(%{version: "v1.2.3", service: "api"})
+      assert :ok = UpdogElixirClient.flush(1_000)
     end
 
     test "skips deployment marker when no api_key" do
@@ -78,6 +82,7 @@ defmodule UpdogElixirClientTest do
 
       event = %{type: "test", data: "hello"}
       assert :ok = UpdogElixirClient.report_event(event)
+      assert UpdogElixirClient.delivery_stats().queue_records == 1
     end
 
     test "skips when no api_key" do
