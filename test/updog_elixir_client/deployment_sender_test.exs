@@ -9,7 +9,11 @@ defmodule UpdogElixirClient.DeploymentSenderTest do
 
   setup do
     Mox.set_mox_global()
+    Application.put_env(:updog_elixir_client, :api_key, "test-key")
     UpdogElixirClient.CollectorState.reset()
+
+    on_exit(fn -> Application.delete_env(:updog_elixir_client, :api_key) end)
+
     :ok
   end
 

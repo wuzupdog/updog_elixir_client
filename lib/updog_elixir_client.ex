@@ -85,7 +85,5 @@ defmodule UpdogElixirClient do
   @doc """
   Returns whether the client is enabled. Enabled when an API key is configured.
   """
-  def enabled? do
-    UpdogElixirClient.Config.api_key() != nil
-  end
+  defdelegate enabled?(), to: UpdogElixirClient.Config
 end

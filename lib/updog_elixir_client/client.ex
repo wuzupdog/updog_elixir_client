@@ -12,8 +12,12 @@ defmodule UpdogElixirClient.Client do
 
   @impl true
   def post(url, body) when is_binary(body) do
-    request_id = generate_id("req")
-    deliver(url, body, request_id, 0)
+    if Config.enabled?() do
+      request_id = generate_id("req")
+      deliver(url, body, request_id, 0)
+    else
+      {:error, :disabled}
+    end
   end
 
   @impl true
