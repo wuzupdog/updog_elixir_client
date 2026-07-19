@@ -6,3 +6,4 @@
 - Bulk errors, traces, logs, and metrics with stable event/request IDs and resource metadata.
 - Add retry classification, `Retry-After`, full-jitter backoff, 413 splitting, delivery counters, and bounded `flush/1`.
 - Preserve trace/span relationships when instrumentation metadata supplies them and use one deterministic sampling decision per trace.
+- Skip automatic capture when no non-blank API key is configured and contain unexpected transport exceptions inside the delivery worker.

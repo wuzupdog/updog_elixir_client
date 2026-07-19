@@ -43,6 +43,15 @@ defmodule UpdogElixirClient.CollectorTest do
     assert %{queue_records: 0, in_flight: 0, sent: 2} = Collector.stats()
   end
 
+  test "direct automatic capture is ignored when no API key is configured" do
+    Application.delete_env(:updog_elixir_client, :api_key)
+
+    assert :ok = Collector.push_log(%{level: "error", message: "disabled"})
+    _ = :sys.get_state(Collector)
+
+    assert %{queue_records: 0, in_flight: 0} = Collector.stats()
+  end
+
   test "a full queue evicts lower-priority telemetry for an error" do
     Application.put_env(:updog_elixir_client, :max_queue_records, 2)
 

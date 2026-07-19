@@ -31,6 +31,11 @@ defmodule UpdogElixirClientTest do
       Application.delete_env(:updog_elixir_client, :api_key)
       assert UpdogElixirClient.enabled?() == false
     end
+
+    test "returns false when api_key is blank" do
+      Application.put_env(:updog_elixir_client, :api_key, "  ")
+      assert UpdogElixirClient.enabled?() == false
+    end
   end
 
   describe "notify/2" do

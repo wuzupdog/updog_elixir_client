@@ -34,7 +34,11 @@ defmodule UpdogElixirClient.Collector do
   end
 
   defp enqueue(signal, record) when signal in @signals and is_map(record) do
-    GenServer.cast(__MODULE__, {:enqueue, signal, record})
+    if Config.enabled?() do
+      GenServer.cast(__MODULE__, {:enqueue, signal, record})
+    else
+      :ok
+    end
   end
 
   @impl true
@@ -292,7 +296,7 @@ defmodule UpdogElixirClient.Collector do
 
           task =
             Task.Supervisor.async_nolink(UpdogElixirClient.DeliverySupervisor, fn ->
-              deliver(signal, records)
+              safe_deliver(signal, records)
             end)
 
           state
@@ -337,6 +341,18 @@ defmodule UpdogElixirClient.Collector do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp safe_deliver(signal, records) do
+    deliver(signal, records)
+  rescue
+    exception ->
+      diagnostic("delivery raised: #{Exception.message(exception)}")
+      {:error, :transport_exception}
+  catch
+    kind, reason ->
+      diagnostic("delivery stopped: #{inspect(kind)} #{inspect(reason)}")
+      {:error, :transport_exception}
   end
 
   defp envelope(:events, records), do: %{events: records}

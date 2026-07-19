@@ -4,6 +4,14 @@ defmodule UpdogElixirClient.Config do
   """
 
   def api_key, do: Application.get_env(:updog_elixir_client, :api_key)
+
+  def enabled? do
+    case api_key() do
+      value when is_binary(value) -> String.trim(value) != ""
+      _ -> false
+    end
+  end
+
   def endpoint, do: Application.get_env(:updog_elixir_client, :endpoint, "https://wuzupdog.com")
   def environment, do: Application.get_env(:updog_elixir_client, :environment, "dev")
   def sample_rate, do: Application.get_env(:updog_elixir_client, :sample_rate, 1.0)
