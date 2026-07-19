@@ -7,6 +7,12 @@ defmodule UpdogElixirClient.DeploymentSenderTest do
 
   setup :verify_on_exit!
 
+  setup do
+    Mox.set_mox_global()
+    UpdogElixirClient.CollectorState.reset()
+    :ok
+  end
+
   test "send_deployment/1 posts deployments payload" do
     expect(UpdogElixirClient.MockHttpClient, :post_json, fn url, payload ->
       assert url =~ "/api/v1/deployments"
@@ -24,5 +30,7 @@ defmodule UpdogElixirClient.DeploymentSenderTest do
       version: "v1.2.3",
       sha: "abc123"
     })
+
+    assert :ok = UpdogElixirClient.flush(1_000)
   end
 end

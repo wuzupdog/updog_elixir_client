@@ -3,7 +3,7 @@ defmodule UpdogElixirClient.DeploymentSender do
   Sends deployment events to the Updog server.
   """
 
-  alias UpdogElixirClient.Config
+  alias UpdogElixirClient.{Collector, Config}
 
   def send_deployment(attrs) when is_map(attrs) do
     payload =
@@ -12,7 +12,7 @@ defmodule UpdogElixirClient.DeploymentSender do
       |> Enum.reject(fn {_k, v} -> is_nil(v) end)
       |> Map.new()
 
-    http_client().post_json(Config.deployments_url(), payload)
+    Collector.push_deployment(payload)
   end
 
   defp with_defaults(attrs) do
@@ -25,9 +25,5 @@ defmodule UpdogElixirClient.DeploymentSender do
       sha: Map.get(attrs, :sha, System.get_env("GIT_SHA")),
       deployed_at: Map.get(attrs, :deployed_at, now)
     }
-  end
-
-  defp http_client do
-    Application.get_env(:updog_elixir_client, :http_client, UpdogElixirClient.Client)
   end
 end

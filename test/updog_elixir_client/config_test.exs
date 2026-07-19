@@ -78,7 +78,7 @@ defmodule UpdogElixirClient.ConfigTest do
   describe "URL construction" do
     test "notices_url uses configured endpoint" do
       Application.put_env(:updog_elixir_client, :endpoint, "https://updog.io")
-      assert Config.notices_url() == "https://updog.io/api/v1/notices"
+      assert Config.notices_url() == "https://updog.io/api/v1/notices/bulk"
     end
 
     test "events_url uses configured endpoint" do
@@ -98,7 +98,7 @@ defmodule UpdogElixirClient.ConfigTest do
 
     test "uses default endpoint when not configured" do
       Application.delete_env(:updog_elixir_client, :endpoint)
-      assert Config.notices_url() == "https://wuzupdog.com/api/v1/notices"
+      assert Config.notices_url() == "https://wuzupdog.com/api/v1/notices/bulk"
     end
   end
 end

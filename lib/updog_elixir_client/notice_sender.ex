@@ -3,19 +3,15 @@ defmodule UpdogElixirClient.NoticeSender do
   Sends error notices immediately to the Updog server.
   """
 
-  alias UpdogElixirClient.{Config, Notice}
+  alias UpdogElixirClient.{Collector, Notice}
 
   def send_notice(exception, opts \\ []) do
     payload = Notice.build(exception, opts)
-    http_client().post_json(Config.notices_url(), payload)
+    Collector.push_notice(payload)
   end
 
   def send_error(kind, reason, stacktrace, opts \\ []) do
     payload = Notice.build_from_error(kind, reason, stacktrace, opts)
-    http_client().post_json(Config.notices_url(), payload)
-  end
-
-  defp http_client do
-    Application.get_env(:updog_elixir_client, :http_client, UpdogElixirClient.Client)
+    Collector.push_notice(payload)
   end
 end

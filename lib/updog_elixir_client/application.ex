@@ -6,6 +6,7 @@ defmodule UpdogElixirClient.Application do
   def start(_type, _args) do
     children = [
       {Finch, name: UpdogElixirClient.Finch},
+      {Task.Supervisor, name: UpdogElixirClient.DeliverySupervisor},
       UpdogElixirClient.Collector
     ]
 
@@ -15,5 +16,11 @@ defmodule UpdogElixirClient.Application do
 
     opts = [strategy: :one_for_one, name: UpdogElixirClient.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  @impl true
+  def prep_stop(state) do
+    _ = UpdogElixirClient.Collector.flush(5_000)
+    state
   end
 end

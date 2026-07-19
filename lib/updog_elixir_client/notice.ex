@@ -18,7 +18,12 @@ defmodule UpdogElixirClient.Notice do
       request: Keyword.get(opts, :request, %{}),
       environment: Config.environment(),
       hostname: hostname(),
-      fingerprint: Keyword.get(opts, :fingerprint)
+      fingerprint: Keyword.get(opts, :fingerprint),
+      service: Config.service(),
+      release: Config.release(),
+      handled: Keyword.get(opts, :handled, true),
+      mechanism: Keyword.get(opts, :mechanism, "exception"),
+      occurred_at: DateTime.utc_now() |> DateTime.to_iso8601()
     }
   end
 
@@ -36,7 +41,12 @@ defmodule UpdogElixirClient.Notice do
       request: Keyword.get(opts, :request, %{}),
       environment: Config.environment(),
       hostname: hostname(),
-      fingerprint: Keyword.get(opts, :fingerprint)
+      fingerprint: Keyword.get(opts, :fingerprint),
+      service: Config.service(),
+      release: Config.release(),
+      handled: Keyword.get(opts, :handled, true),
+      mechanism: Keyword.get(opts, :mechanism, to_string(kind)),
+      occurred_at: DateTime.utc_now() |> DateTime.to_iso8601()
     }
   end
 
